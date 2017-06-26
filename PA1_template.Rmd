@@ -1,25 +1,156 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+keep_md: true
 ---
+###Introduction
+The purpose of this document is to write a report for aswer the questions detailed below as part of the
+Coursera specialization in Data science on Reproducible Data course.
 
+This assignment makes use of data from Fitbit, a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+
+
+## Data
+The data for this assignment can be downloaded from the course web site:
+
+* Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+
+The variables included in this dataset are:
+
+* **steps**: Number of steps taking in a 5-minute interval (missing values are coded as `NA`).
+
+* **date**: The date on which the measurement was taken in YYYY-MM-DD format.
+
+* **interval**: Identifier for the 5-minute interval in which measurement was taken.
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
 ## Loading and preprocessing the data
 
+##### 1. Load the data (i.e. read.csv())
+The following code is used for download the data if needed: 
+```{r}
+zipFile   <-"./data/getdata-projectfiles-UCI HAR Dataset.zip";
+fileURL   <-"http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip";
+fileName <-"./data/activity.csv";
+ 
+ if(!file.exists(zipFile)){
+     tryCatch(download.file(fileURL, 
+                            zipFile,
+                            method="auto"),
+              error=function(e) 1);
+ }
+
+unzip(zipFile,exdir="./data/");
+```
+##### 2. Process/transform the data (if necessary) into a format suitable for your analysis
+```{r}
+dF <- read.csv(fileName);
+```
 
 
 ## What is mean total number of steps taken per day?
 
+```{r} 
+stepsByDay <- aggregate(steps ~ date, dF, sum);
+```
 
+##### 1. Make a histogram of the total number of steps taken each day
+```{r} 
+hist(stepsByDay$steps, 
+     main = paste("Total number of steps taken each day"), 
+     col="red", 
+     xlab="Number of steps");
+```
 
+##### 2. Calculate and report the mean and median total number of steps taken per day
+```{r} 
+stepsByDayMean <- round(mean(stepsByDay$steps), digits = 5);
+stepsByDayMedian <- round(median(stepsByDay$steps), digits = 5);
+```
+* Mean: `r stepsByDayMean`
+* Median: `r stepsByDayMedian`
+
+-----
 ## What is the average daily activity pattern?
 
+```{r}
+stepsByInterval <- aggregate(steps ~ interval, dF, mean);
+```
+##### 1. Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+plot(stepsByInterval$interval,
+     stepsByInterval$steps, 
+     type="l", 
+     xlab="Interval", 
+     ylab="Number of steps",
+     main="Average number of steps taken");
 
+```
+
+##### 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+maxNumberOfStepsInterval <- stepsByInterval[which.max(stepsByInterval$steps),1];
+```
+* The interval is: `r maxNumberOfStepsInterval`
 
 ## Imputing missing values
+##### 1. Calculate and report the total number of missing values in the dataset 
+```{r}
+numberOfMissingValues <- sum(!complete.cases(dF));
+```
+* Total number  of missing values: `r numberOfMissingValues`
 
+##### 2. Devise a strategy for filling in all of the missing values in the dataset.
+```{r , echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+# Load libraries for use impute on next script
+library(scales)
+library(Hmisc)
+```
+##### 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+# Use the average steps for missing values
+dFWithMissingValues <- dF;
+dFWithMissingValues$steps <- impute(dF$steps, fun=mean);
+```
+
+
+##### 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
+```{r}
+
+
+
+stepsByDayWithMissingValues <- aggregate(steps ~ date, dFWithMissingValues, sum);
+hist(stepsByDayWithMissingValues$steps, main = paste("Total steps taken each day"), col="red", xlab="Number ofsSteps");
+
+hist(stepsByDay$steps, main = paste("Total steps taken each day"), col="blue", xlab="Number of steps", add=T);
+legend("topright", c("With missing values", "Without missing values"), col=c("red", "blue"), lwd=10);
+
+stepsByDayWithMissingValuesMean <- mean(stepsByDayWithMissingValues$steps);
+stepsByDayWithMissingValuesMedian <- median(stepsByDayWithMissingValues$steps);
+```
+* Mean (With missing): `r stepsByDayWithMissingValuesMean`
+* Median (With missing):  `r stepsByDayWithMissingValuesMedian`
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+##### 1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r}
+dFWithMissingValues$dateType <-  ifelse(as.POSIXlt(dFWithMissingValues$date)$wday %in% c(0,6), 'weekend', 'weekday')
+```
+* dateType colum added on the data frame with these factor values.
+
+##### 2. Make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days
+
+```{r}
+dFWithMissingValuesAverage <- aggregate(steps ~ interval + dateType, data=dFWithMissingValues, mean);
+ggplot(dFWithMissingValuesAverage, 
+       aes(interval, steps)) + 
+      geom_line() + 
+      facet_grid(dateType ~ .) +
+      xlab("5-minute interval") + 
+      ylab("Avarage number of steps");
+```
+
+
