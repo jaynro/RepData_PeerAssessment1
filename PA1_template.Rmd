@@ -3,7 +3,7 @@ title: "Reproducible Research: Peer Assessment 1"
 keep_md: true
 ---
 
-###Introduction
+### Introduction
 
 The purpose of this document is to write a report for aswer the questions detailed below as part of the
 Coursera specialization in Data science on Reproducible Data course.
